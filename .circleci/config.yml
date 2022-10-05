@@ -1,0 +1,51 @@
+version: 2.1
+jobs:
+  build:
+    working_directory: /sap-web
+    # build-svc:
+    # Primary container image where all commands run
+    docker:
+      - image: docker:17.05.0-ce-git # using image from dockerhub
+    steps:
+      - checkout
+      - setup_remote_docker
+      # - run: python manage.py migrate
+      # - run: python manage.py runserver 0.0.0.0:8000
+      # - run: curl localhost:8000
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --no-cache py-pip=9.0.0-r1
+            pip install docker-compose==1.15.0
+      - run:
+          name: Run tests
+          command: |
+            docker-compose up -d
+          # TODO: docker-compose run <svc-name> python test.py
+      - run:
+          name: Test Django service
+          command: |
+            docker-compose ps 
+            # docker-compose run svc
+            # docker-compose exec db bash
+            # python manage.py migrate
+      - deploy:
+          name: Push application Docker image
+          command: |
+            docker login -u $DOCKER_HUB_USER -p $DOCKERHUB_PASS
+            docker tag sap-web $DOCKER_HUB_USER/sap-web:$CIRCLE_SHA1
+            docker tag sap-web $DOCKER_HUB_USER/sap-web:latest
+            docker push $DOCKER_HUB_USER/sap-web:$CIRCLE_SHA1
+            docker push $DOCKER_HUB_USER/sap-web:latest
+
+  #   container-build: # This is the name of the workflow, feel free to change it to better match your workflow.
+  #     # Inside the workflow, you define the jobs you want to run.
+  # jobs:
+  #       - build-db:
+  #           context: CONTEXT_DOCK
+  # - build:
+  # context: CONTEXT_DOCK
+  # - build-ui:
+  # context: CONTEXT_DOCK
+
+# workflows:
